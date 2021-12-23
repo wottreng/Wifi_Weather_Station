@@ -21,3 +21,11 @@ TO DO:
 
 CONTRIBUTE:
 ⚠️ feel free to comment and contribute to make this better! ⚠️
+
+## web server output: 
+
+![My image](https://github.com/wottreng/Wifi_Weather_Station/blob/0b0fcf4423432e7075c24fc4eeaa40551129381f/embedded_system/pics/appScreen.png)  
+
+## weather station 
+
+![Weather_Station](https://github.com/wottreng/Wifi_Weather_Station/blob/2bd008bd6837a7c4a689a93b267ae7e6c6f58afd/embedded_system/pics/weatherStation.png)
