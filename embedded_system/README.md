@@ -40,6 +40,7 @@ Firmware features:
 * task scheduler for efficient processing
 * file system for saving data to flash for long term storage and no data loss through power outage
 * data history tracking and graphical output
+* over-the-air updates via web server
 
 Hardware features:
 * boost/buck converter for connecting to wide variety of DC power sources
