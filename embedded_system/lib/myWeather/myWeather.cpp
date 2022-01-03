@@ -18,11 +18,11 @@ extern bool debug ;
 #define windDirPin A0 // analog A0
 
 // time
-byte seconds = 0; // When it hits 60, increase the current minute
-byte minutes = 0; // Keeps track of where we are in various arrays of data
-byte seconds_2m = 0; // Keeps track of the "wind speed/dir avg" over last 2 minutes array of data
-byte minutes_10m = 0; // Keeps track of where we are in wind gust/dir over last 10 minutes array of data
-byte hour_24h = 0; // keep track of hour in day
+uint8_t seconds = 0; // When it hits 60, increase the current minute
+uint8_t minutes = 0; // Keeps track of where we are in various arrays of data
+uint8_t seconds_2m = 0; // Keeps track of the "wind speed/dir avg" over last 2 minutes array of data
+uint8_t minutes_10m = 0; // Keeps track of where we are in wind gust/dir over last 10 minutes array of data
+uint8_t hour_24h = 0; // keep track of hour in day
 
 // var check intervals
 unsigned long last_wind_check = 0;
@@ -61,8 +61,7 @@ float humidity_24h[24]; // humid every hour
 
 // time
 char time_24h[24][6];
-// unsigned long last60secCheck = 0;
-unsigned long last1secCheck = 0; // The millis counter to see when a second rolls by
+bool array_24h_filled = false;
 
 //Interrupt routines (these are called by the hardware interrupts, not by the main code)
 IRAM_ATTR void rain_IRQ()
@@ -88,7 +87,7 @@ IRAM_ATTR void wind_speed_IRQ()
 // Setup =====================================================
 
 // setup pins
-void myWeatherInit(bool debugInput = false)
+void myWeatherInit(bool debugInput)
 {
   if(debugInput) debug = true;
   //
@@ -96,26 +95,6 @@ void myWeatherInit(bool debugInput = false)
   pinMode(rainBucketPin, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(rainBucketPin), rain_IRQ, FALLING);
   attachInterrupt(digitalPinToInterrupt(windspeedPin), wind_speed_IRQ, FALLING);
-  //
-  last1secCheck = millis();
-  //last60secCheck = millis();
-}
-
-// Loop ======================================================
-
-// 1 second loop timer
-void myWeatherLoop1s()
-{
-    if (millis() - last1secCheck >= 1000) { // must be every second
-      last1secCheck += 1000;
-      updateWeather_EverySecond();
-    }
-}
-
-// 60 second task, run in scheduler
-void myWeather_every_60s()
-{
-  calcWeather();      
 }
 
 // functions -----------------------------------------
@@ -176,73 +155,229 @@ String getWeatherDataJSON(){
 
 // return history html
 String return_weather_history_html(){
-    String weather_history = " <!DOCTYPE html>"
-                              "<html>"
-                              "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /><meta http-equiv=\"refresh\" content=\"180; url='/history'\"/></head>"
-                              "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js\"></script>"
-                              "<style>"
-                              "body {"
-                              "display: flex; flex-direction: column; flex-wrap: nowrap; align-items: center;  text-align:center;  align-content: center;  width: 100vw;  height: 100vh;  padding: 0;  margin: 0;  background-color: #2F4F4F;  color: white;   font-size: large;"
-                              "}"
-                              "</style>"
-                              "<body>"
-                              "<div style=\"background-color: #FFFAF0;width: 100%; max-width:600px;padding:10px;\">"
-                              "<canvas id=\"myChart\" style=\"width:100%;max-width:600px\"></canvas>"
-                              "</div>"
-                              "<script>"
-                              "var xValues = ["  + return_char_array_history(time_24h,24) + "];"
-                              "new Chart(\"myChart\", {"
-                              "  type: \"line\","
-                              "  data: {"
-                              "  labels: xValues,"
-                              "datasets: [{ "
-                              "data: [" + return_float_array_history(air_temp_24h,24,false) + "],"
-                              "borderColor: \"red\","
-                              "fill: false"
-                              "  }]"
-                              " },"
-                              "options: {"
-                              "legend: {display: false},"
-                              " responsive: true,"
-                              "scales: {"
-                              "xAxes: [ {"
-                              "display: true,"
-                              "scaleLabel: {"
-                              "display: true,"
-                              "labelString: 'Time'"
-                              "},"
-                              "ticks: {"
-                              "major: {"
-                              "fontStyle: 'bold',"
-                              "fontColor: '#FF0000'"
-                              " }"
-                              "}"
-                              "} ],"
-                              "yAxes: [ {"
-                              "display: true,"
-                              "scaleLabel: {"
-                              "display: true,"
-                              "labelString: 'Temp'"
-                              "}"
-                              "} ]"
-                              "}"
-                              "}"
-                              "});"
-                              "</script>"
-                              "<h2> hourly arrays </h2>"
-                              "<p><h3>wind speed</h3>" + return_int_array_history(wind_speed_24h,24) +"</p>"
-                              "<p><h3>wind direction</h3>" + return_int_array_history(wind_dir_24h,24) +"</p>"
-                              "<p><h3>air temp</h3>" + return_float_array_history(air_temp_24h,24) +"</p>"
-                              "<p><h3>air humidity</h3>" + return_float_array_history(humidity_24h,24) +"</p>"
-                              "<p><h3>water temp</h3>" + return_float_array_history(water_temp_24h,24) +"</p>"
-                              "<p><h3>rain hourly</h3>" + return_float_array_history(rain_24h,24,false) +"</p>"
-                              "</body>"
-                              "</html>";
+    String time_data_array;
+    String air_temp_data_array;
+    String air_humidity_data_array;
+    String water_temp_data_array;
+    String rain_data_array;
 
-    return weather_history;
+    uint8_t start_index = 0;
+    if(array_24h_filled == true) {
+      start_index = hour_24h;
+      time_data_array = return_char_array_history(time_24h, 24, start_index);
+      air_temp_data_array = return_float_array_history(air_temp_24h, 24, start_index);
+      air_humidity_data_array = return_float_array_history(humidity_24h, 24, start_index);
+      water_temp_data_array = return_float_array_history(water_temp_24h, 24, start_index);
+      rain_data_array = return_float_array_history(rain_24h, 24, start_index);
+    }else{
+      time_data_array = return_char_array_history(time_24h, hour_24h, start_index);
+      air_temp_data_array = return_float_array_history(air_temp_24h, hour_24h, start_index);
+      air_humidity_data_array = return_float_array_history(humidity_24h, hour_24h, start_index);
+      water_temp_data_array = return_float_array_history(water_temp_24h, hour_24h, start_index);
+      rain_data_array = return_float_array_history(rain_24h, hour_24h, start_index);
+    }
+
+    return " <!DOCTYPE html>"
+            "<html lang='en'>"
+            "<head>"
+            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /><meta http-equiv=\"refresh\" content=\"180; url='/history'\"/>"
+            "<meta charset='UTF-8'>"
+            "</head>"
+            "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js\"></script>"
+            "<style>"
+            "body {"
+            "display: flex; flex-direction: column; flex-wrap: nowrap; align-items: center;  text-align:center;  align-content: center;  width: 100vw;  height: 100vh;  padding: 0;  margin: 0;  background-color: #2F4F4F;  color: white;   font-size: large;"
+            "}"
+            "</style>"
+            "<body>"
+            "<p>DEBUG: hour_24h: "+String(hour_24h)+", array_24h_filled: "+String(array_24h_filled)+" ,minutes:"+String(minutes)+"</p>"
+            "<p><a href=\"/\">Home</a></p>"
+            // --- air temp 
+            "<div style=\"background-color: #FFFAF0;width: 100%; max-width:600px;padding:10px;\">"
+            "<canvas id=\"myChart0\" style=\"width:100%;max-width:600px\"></canvas>"
+            "</div>"
+            "<script>"
+            "new Chart(\"myChart0\", {"
+            "  type: \"line\","
+            "  data: {"
+            "  labels: ["  + time_data_array + "],"
+            "datasets: [{ "
+            "data: [" + air_temp_data_array + "],"
+            "borderColor: \"red\","
+            "fill: false"
+            "  }]"
+            " },"
+            "options: {"
+            "title: {  display: true, text: 'Air Temp over Time' },"
+            "legend: {display: false},"
+            " responsive: true,"
+            "scales: {"
+            "xAxes: [ {"
+            "display: true,"
+            "scaleLabel: {"
+            "display: true,"
+            "labelString: 'Time'"
+            "},"
+            "ticks: {"
+            "major: {"
+            "fontStyle: 'bold',"
+            "fontColor: '#FF0000'"
+            " }"
+            "}"
+            "} ],"
+            "yAxes: [ {"
+            "display: true,"
+            "scaleLabel: {"
+            "display: true,"
+            "labelString: 'Air Temp F'"
+            "}"
+            "} ]"
+            "}"
+            "}"
+            "});"
+            "</script>"
+            "</br>" // ------ humidity
+            "<div style=\"background-color: #FFFAF0;width: 100%; max-width:600px;padding:10px;\">"
+            "<canvas id=\"myChart1\" style=\"width:100%;max-width:600px\"></canvas>"
+            "</div>"
+            "<script>"
+            "new Chart(\"myChart1\", {"
+            "  type: \"line\","
+            "  data: {"
+            "  labels: ["  + time_data_array + "],"
+            "datasets: [{ "
+            "data: [" + air_humidity_data_array + "],"
+            "borderColor: \"red\","
+            "fill: false"
+            "  }]"
+            " },"
+            "options: {"
+            "title: {  display: true, text: 'Air Humidity over Time' },"
+            "legend: {display: false},"
+            " responsive: true,"
+            "scales: {"
+            "xAxes: [ {"
+            "display: true,"
+            "scaleLabel: {"
+            "display: true,"
+            "labelString: 'Time'"
+            "},"
+            "ticks: {"
+            "major: {"
+            "fontStyle: 'bold',"
+            "fontColor: '#FF0000'"
+            " }"
+            "}"
+            "} ],"
+            "yAxes: [ {"
+            "display: true,"
+            "scaleLabel: {"
+            "display: true,"
+            "labelString: 'Air Humidity %'"
+            "}"
+            "} ]"
+            "}"
+            "}"
+            "});"
+            "</script>"
+            "</br>" // --- water temp
+            "<div style=\"background-color: #FFFAF0;width: 100%; max-width:600px;padding:10px;\">"
+            "<canvas id=\"myChart2\" style=\"width:100%;max-width:600px\"></canvas>"
+            "</div>"
+            "<script>"
+            "new Chart(\"myChart2\", {"
+            "  type: \"line\","
+            "  data: {"
+            "  labels: ["  + time_data_array + "],"
+            "datasets: [{ "
+            "data: [" + water_temp_data_array + "],"
+            "borderColor: \"red\","
+            "fill: false"
+            "  }]"
+            " },"
+            "options: {"
+            "title: {  display: true, text: 'Water Temp over Time' },"
+            "legend: {display: false},"
+            " responsive: true,"
+            "scales: {"
+            "xAxes: [ {"
+            "display: true,"
+            "scaleLabel: {"
+            "display: true,"
+            "labelString: 'Time'"
+            "},"
+            "ticks: {"
+            "major: {"
+            "fontStyle: 'bold',"
+            "fontColor: '#FF0000'"
+            " }"
+            "}"
+            "} ],"
+            "yAxes: [ {"
+            "display: true,"
+            "scaleLabel: {"
+            "display: true,"
+            "labelString: 'Water Temp F'"
+            "}"
+            "} ]"
+            "}"
+            "}"
+            "});"
+            "</script>"
+            "</br>" // --- rain graph
+            "<div style=\"background-color: #FFFAF0;width: 100%; max-width:600px;padding:10px;\">"
+            "<canvas id=\"myChart3\" style=\"width:100%;max-width:600px\"></canvas>"
+            "</div>"
+            "<script>"
+            "new Chart(\"myChart3\", {"
+            "  type: \"line\","
+            "  data: {"
+            "  labels: ["  + time_data_array + "],"
+            "datasets: [{ "
+            "data: [" + rain_data_array + "],"
+            "borderColor: \"red\","
+            "fill: false"
+            "  }]"
+            " },"
+            "options: {"
+            "title: {  display: true, text: 'Rain Fall over Time' },"
+            "legend: {display: false},"
+            " responsive: true,"
+            "scales: {"
+            "xAxes: [ {"
+            "display: true,"
+            "scaleLabel: {"
+            "display: true,"
+            "labelString: 'Time'"
+            "},"
+            "ticks: {"
+            "major: {"
+            "fontStyle: 'bold',"
+            "fontColor: '#FF0000'"
+            " }"
+            "}"
+            "} ],"
+            "yAxes: [ {"
+            "display: true,"
+            "scaleLabel: {"
+            "display: true,"
+            "labelString: 'Rain inches'"
+            "}"
+            "} ]"
+            "}"
+            "}"
+            "});"
+            "</script>"
+            // ----------------
+            "<h2> hourly arrays </h2>"
+            "<p><h3>wind speed</h3>" + return_int_array_history(wind_speed_24h, hour_24h, start_index) +"</p>"
+            "<p><h3>wind direction</h3>" + return_int_array_history(wind_dir_24h, hour_24h, start_index) +"</p>"            
+            "</br>"
+            "</body>"
+            "</html>";
 }
 
-// run every second
+// run every second, run in scheduler
 void updateWeather_EverySecond(){
     
     //Take a speed and direction reading every second for 2 minute average
@@ -293,11 +428,12 @@ void updateWeather_EverySecond(){
         if (++hour_24h > 23) {
           hour_24h = 0;
           rain_daily_inches = 0;
+          array_24h_filled = true;
         }
       }
       
       // zero out current index for rain and wind
-      rain_60m_array[minutes] = 0; // Zero out this minute's rainfall amount (called in interupt)
+      rain_60m_array[minutes] = 0; // Zero out this minute's rainfall amount (var called in interupt)
       wind_gust_10m[minutes_10m] = 0; //Zero out this minute's gust 
     }  
 }
@@ -346,8 +482,8 @@ String get_cardinal_dir(int dir){
   return ("Error");
 }
 
-// called every 60 sec
-void calcWeather(){
+// run every 60 sec, calculate weather vars
+void myWeather_calc_weather(){
   //
   wind_dir_now = get_wind_direction();
 

@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <string.h>
-#include <WiFiClientSecure.h>
+#include <WiFiClientSecure.h> 
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266mDNS.h>
 #include <WiFiClient.h>
@@ -36,7 +36,7 @@ int max_con = 4;
 // update server
 ESP8266HTTPUpdateServer httpUpdater;
 const String hostName = "weather";
-// wifi
+// wifi 
 String WIFI_SSID;
 String WIFI_PASS;
 
@@ -50,14 +50,14 @@ const byte wifiPSWDloc = 20;
 // functions ==================================================================
 
 // read wifi creds from eeprom
-void myWifiInit(bool debugInput = false){
+void myWifi_Init(bool debugInput = false){
     if(debugInput) debug = true;
     WIFI_SSID = read_eeprom(wifiSSIDloc); // string
     WIFI_PASS = read_eeprom(wifiPSWDloc);
 }
 
 // wifi handle client and update MDNS, run in main loop
-void myWifiLoop()
+void myWifi_Loop()
 {
     httpServer.handleClient();
     MDNS.update();
@@ -90,7 +90,7 @@ void APinputChange() {
   WIFI_SSID = httpServer.arg("wifi SSID");
   WIFI_PASS = httpServer.arg("password"); //string
   writeToEEPROM(WIFI_SSID,wifiSSIDloc);
-  writeToEEPROM(WIFI_PASS,wifiPSWDloc);
+  writeToEEPROM(WIFI_PASS,wifiPSWDloc);  
 
   String s = "<meta http-equiv=\"refresh\" content=\"30; url='/'\" />"
              "<body> trying to connect to new wifi connection </br> "
@@ -99,34 +99,17 @@ void APinputChange() {
              "<br/><p>click to go back to main page:&nbsp <a href=\"/\"><button style=\"display: block;\">AP Main Page</button></a>";
   httpServer.send(200, "text/html", s);  //Send web page
   httpServer.stop();
-  connectWifi();
+  myWifi_connectWifi();
 }
 
-// http server config
-void web_server_config()
-{
-    MDNS.begin(hostName.c_str());
 
-    //------server--------------------
-    // server.stop();
-    httpServer.onNotFound(notFound); // after ip address /
-    httpServer.on("/", HTTP_GET, mainPageHTMLpageBuilder);
-    httpServer.on("/APsetup", HTTP_GET, wifiCredentialUpdatePage); // see current AP setup
-    httpServer.on("/input", HTTP_POST, APinputChange); // change AP setup
-    httpServer.on("/api0", HTTP_GET, argData);
-    httpServer.on("/history", HTTP_GET, weather_history);
-    httpServer.on("/reboot", HTTP_GET, reboot);
-    httpUpdater.setup(&httpServer);
-    httpServer.begin();
-    MDNS.addService("http", "tcp", 80);
-}
 
 // check wifi status and connect wifi or else create AP
-void connectWifi()
+void myWifi_connectWifi( bool New_Connection)
 {
-    if (WiFi.status() != 3) // if not conneted
+    if (WiFi.status() != 3 || New_Connection == true) // if not conneted 
     {
-        wifi_set_sleep_type(LIGHT_SLEEP_T); // Auto modem sleep is default, light sleep, deep sleep
+        wifi_set_sleep_type(LIGHT_SLEEP_T); // Auto modem sleep is default, light sleep for power savings
         WiFi.persistent(false);
         WiFi.setOutputPower(20);
         WiFi.mode(WIFI_STA);
@@ -138,7 +121,7 @@ void connectWifi()
             delay(800);
             byte conStatus = WiFi.status();
             x += 1;
-            if (conStatus == 3) { // connected to AP
+            if (conStatus == 3) { // connected to AP                
                 x = 100;
                 myTimeInit(); // init time client
                 if (debug) {
@@ -167,12 +150,12 @@ void connectWifi()
                 }
             }
         }
-        web_server_config();
+        myWifi_web_server_config();
     }
 }
 
 // url not found
-void notFound() {  //when stuff after / is incorrect
+void myWifi_notFound() {  //when stuff after / is incorrect
   String s = "<meta http-equiv=\"refresh\" content=\"5; url='/'\" />"
              "<body> not a know page for ESP server </br> you will be directed automaticly or click button below to be redirected to main page</br>"
              "<br/><p>click to go back to main page:&nbsp <a href=\"/\"><button style=\"display: block;\">AP Main Page</button></a>";
@@ -180,12 +163,12 @@ void notFound() {  //when stuff after / is incorrect
 }
 
 // return weather history
-void weather_history(){
+void myWifi_weather_history(){
     httpServer.send(200, "text/html", return_weather_history_html());
 }
 
 // return json data format
-void jsonData() {
+void myWifi_jsonData() {
   String output = "{"
                   "\"waterTempF\":\"" + String(return_water_temp(), 2) + "\"," +
                   "\"airTempF\":\"" + String(return_air_temp(), 2) + "\"," +
@@ -235,10 +218,10 @@ void jsonData() {
   output += "\"Wifi_Signal_dBm\":\"" + String(WiFi.RSSI()) +  "\","
             "\"Core Frequency MHz\":\"" +  String(ESP.getCpuFreqMHz()) +   "\","
             "\"reason last reset\":\"" +    ESP.getResetReason() +    "\","
-            "\"free HEAP\":\"" + String(ESP.getFreeHeap()) +  "\","
+            "\"free HEAP\":\"" + String(ESP.getFreeHeap()) +  "\"," 
             "\"ESP ID\":\"" + String(ESP.getChipId()) +  "\","
-            "\"sketch size\":\"" + String(ESP.getSketchSize()) +  "\","
-            "\"FS info\":\"" + myFileSystem_info() +  "\","
+            "\"sketch size\":\"" + String(ESP.getSketchSize()) +  "\","  
+            "\"FS info\":\"" + myFileSystem_info() +  "\","  
             "\"version\":\"" + getVersion() + "\""
             "}";
 
@@ -246,7 +229,7 @@ void jsonData() {
 }
 
 //===main page builder=========================
-void mainPageHTMLpageBuilder()
+void myWifi_mainPageHTMLpageBuilder() 
 {
 String html = "<!DOCTYPE html>"
 "<html lang='en'>"
@@ -374,19 +357,9 @@ String html = "<!DOCTYPE html>"
 "<p class='textBlocks greyText'>WIND</p>" + getWindDataHTML() +"</div>"
 "<div class='subFlexBlock greenBorder'>"
 "<p class='textBlocks greyText'>RAIN</p>" + getRainDataHTML() +"</div>"
-"</br></br></br></br></br></br></br></br>"
-"<div class='subFlexBlock greenBorder'>";
-
-byte conStatus = WiFi.status();
-if (conStatus == 0)  html += "Wifi connection is Idle</br>";
-else if (conStatus == 3) html += "Connected to AP:&nbsp <b>"+ WIFI_SSID +"</b></br>"
-                                 "local IP:&nbsp<b>" + WiFi.localIP().toString() + "</b></br>"
-                                 "Connection Strength: <b>" + String(WiFi.RSSI()) + " dbm</b>";
-else if (conStatus == 1) html += "Not connected to internet</br> Can not connect to AP:&nbsp<b>" + WIFI_SSID +  "</b></br>";
-else if (conStatus == 7)  html += "Disconnected from access point";
-else  html += "<b>Connection Status: "+ String(conStatus) +"</b></br>";
-
-html += "</div>"
+"<div class='subFlexBlock greenBorder'>"
+"<p class='textBlocks greyText'> <a href=\"/history\">Weather History</a> </p>"
+"</div>"
 /*
 "<div class='subFlexBlock whiteBorder'>"
 "<span class='textBlocks'>Change Wifi Access Point: </span><a href='/APsetup'><button style='display: block;'>Wifi Setup</button></a>"
@@ -401,7 +374,7 @@ httpServer.send(200, "text/html", html); // send string to browser
 }
 
 // make request to a server
-void GetRequest() {
+void http_request() {
   //
   WiFiClient client;
   HTTPClient http;
@@ -430,18 +403,96 @@ void GetRequest() {
   }
 }
 
+// post data to server
+void http_post_request(){
+
+}
 // direct api call
-void argData()
+void myWifi_argData()
 {
     if (httpServer.arg("websocket") != "") {
         int value = (httpServer.arg("websocket")).toInt();
         if (value == 1) webSocketServerSwitch(true);
         else webSocketServerSwitch(false);
-
+      
     }
-
-
-    jsonData();
+    
+    myWifi_jsonData();
 }
+
+// http server config
+void myWifi_web_server_config()
+{
+    MDNS.begin(hostName.c_str());
+
+    //------server--------------------
+    // server.stop();
+    httpServer.onNotFound(myWifi_notFound); // after ip address /
+    httpServer.on("/", HTTP_GET, myWifi_mainPageHTMLpageBuilder);
+    httpServer.on("/APsetup", HTTP_GET, wifiCredentialUpdatePage); // see current AP setup
+    httpServer.on("/input", HTTP_POST, APinputChange); // change AP setup
+    httpServer.on("/api0", HTTP_GET, myWifi_argData);
+    httpServer.on("/history", HTTP_GET, myWifi_weather_history);
+    httpServer.on("/reboot", HTTP_GET, reboot);
+    httpUpdater.setup(&httpServer);
+    httpServer.begin();
+    MDNS.addService("http", "tcp", 80);
+}
+
+//===
+/*
+// send data via https
+void sendData(String dataX) {
+  // vars
+  // https://circuits4you.com/2019/01/10/esp8266-nodemcu-https-secured-get-request/
+
+  const char *host = "jsonplaceholder.typicode.com";
+  const int httpsPort = 443; // HTTPS= 443 and HTTP = 80
+
+  //
+  String message =  "uploadData=" + dataX + "&xkeyx=wottreng69&fileName=lakeTemp";
+  String messageLength = String(message.length());
+  // Your Domain name with URL path or IP address with path
+  WiFiClientSecure httpsClient;
+  httpsClient.setFingerprint(fingerprint);
+  httpsClient.setTimeout(15000); // 15 Seconds
+  // Serial.print("HTTPS Connecting");
+  int counter = 0; // retry counter
+  while ((!httpsClient.connect(host, httpsPort)) && (counter < 30)) {
+    delay(100);
+    // Serial.print(".");
+    counter++;
+  }
+  if (counter == 30) {
+    // Serial.println("Connection failed");
+    delay(10);
+  } else {
+    // Serial.println("Connected to web");
+    // POST Data
+    String Link = "/19sdf8g31h";
+    httpsClient.print(String("POST ") + Link + " HTTP/1.1\r\n" +
+                      "Host: " + host + "\r\n" +
+                      "Content-Type: application/x-www-form-urlencoded" +
+                      "\r\n" + "Content-Length: " + messageLength + "\r\n\r\n" +
+                      message + "\r\n" + "Connection: close\r\n\r\n");
+  }
+
+  // Serial.println("request sent");
+
+  while (httpsClient.connected()) {
+    String line = httpsClient.readStringUntil('\n');
+    if (line == "\r") {
+      // Serial.println("headers received");
+      break;
+    }
+  }
+
+  String line;
+  while (httpsClient.available()) {
+    line = httpsClient.readStringUntil('\n'); // Read Line by Line
+    // Serial.println(line);                      //Print response
+  }
+}
+*/
 
 //

@@ -10,18 +10,12 @@
 #include <ESP8266HTTPClient.h>
 
 
-void myWifiInit(bool debugInput);
+void myWifi_Init(bool debugInput);
 
-void myWifiLoop();
+void myWifi_Loop();
 
-void connectWifi();
+void myWifi_connectWifi(bool New_Connection = false);
 
-void notFound();
+void myWifi_web_server_config();
 
-void jsonData();
-
-void mainPageHTMLpageBuilder();
-
-void argData();
-
-void weather_history();
+//

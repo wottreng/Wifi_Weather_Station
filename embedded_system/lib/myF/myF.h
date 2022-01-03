@@ -4,7 +4,7 @@
 #include <string.h>
 
 
-void myFinit(bool debugInput);
+void myFinit(bool debugInput = false);
 
 void reboot();
 

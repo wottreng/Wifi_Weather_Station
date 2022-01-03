@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <string.h>
 
 // custom libraries
 #include <myEEPROM.h>
@@ -38,7 +39,7 @@ const bool debug = false;
 //=========================================================
 void setup()
 {
-    if (debug) Serial.begin(115200);
+    if (debug) Serial.begin(9600);
     //
     myFinit(debug);
     //
@@ -46,27 +47,21 @@ void setup()
     //
     EEPROMinit();
     //
-    myWifiInit(debug);
+    myWifi_Init(debug);
     //
     myTempInit(debug);
+    // 
+    myWifi_connectWifi();
     //
-    connectWifi();
+    myScheduler_init(debug);
 }
 //==================================================
 void loop()
 {
-    // sync time 
-    myTime_update_time_client();
-    // check for websocket communication
-    websocketLoop();
-    // check for wifi communication
-    myWifiLoop();
-    // has to run every second
-    myWeatherLoop1s();
-    // tasks to run every 60 seconds
-    mySchedule_60s();
-    // check wifi connection and reconnect if needed
-    connectWifi();
+    myScheduler_asap();
+    myScheduler_1s();
+    myScheduler_60s();
+    myScheduler_5m();
 }
 
 // =======================================

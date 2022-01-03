@@ -3,11 +3,7 @@
 #include <Arduino.h>
 #include <string.h>
 
-void myWeatherInit(bool debugInput);
-
-void myWeatherLoop1s();
-
-void myWeather_every_60s();
+void myWeatherInit(bool debugInput = false);
 
 String getWindDataHTML();
 
@@ -15,7 +11,7 @@ String getWeatherDataJSON();
 
 void updateWeather_EverySecond();
 
-void calcWeather();
+void myWeather_calc_weather();
 
 String getRainDataHTML();
 

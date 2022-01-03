@@ -11,14 +11,14 @@
 // onboard LED pin
 const byte LEDpin = 16;
 //
-String version = "6.1";
+String version = "7.0";
 //
 bool debug = false;
 
 // functions =============================
 
 // initialize LED pin
-void myFinit(bool debugInput = false)
+void myFinit(bool debugInput)
 {
     if (debugInput)
         debug = true;

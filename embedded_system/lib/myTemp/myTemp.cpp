@@ -48,8 +48,8 @@ void myTempInit(bool debugInput = false)
     dht.begin(); 
 }
 
-// main loop task every 60 seconds, run in scheduler
-void myTemp_every_60s()
+// check sensors, run in scheduler
+void myTemp_check_sensors()
 {
     check_water_temp_DS18B20();
     check_air_temp_humidity_DHT11();

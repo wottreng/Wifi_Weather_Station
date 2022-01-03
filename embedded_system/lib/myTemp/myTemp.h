@@ -11,7 +11,7 @@ float return_air_humidity();
 
 void myTempInit(bool debugInput);
 
-void myTemp_every_60s();
+void myTemp_check_sensors();
 
 void check_air_temp_humidity_DHT11();
 
